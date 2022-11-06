@@ -1,0 +1,5 @@
+
+.venv
+.ntvenv
+__pycache__
+*.pth
