@@ -1,5 +1,6 @@
 import random
 from collections import deque
+import sys
 
 import numpy as np
 import torch
@@ -8,20 +9,24 @@ from helper import plot
 from model import LinearQNet, QTrainer
 from snake import Direction, Point, SnakeGameAI
 
-MAX_MEMORY = 100_000
+MAX_MEMORY = 1_000_000
 BATCH_SIZE = 1000
 LEARNING_RATE = 0.001
 
+Action = tuple[int, int, int]
+
 
 class Agent:
-    def __init__(self) -> None:
-        self.games: int = 0
-        self.epsilon: float = 0
-        self.gamma: float = 0.9
+    def __init__(self, argv: list[str]) -> None:
+        self.games = 0
+        self.epsilon = 0
+        self.gamma = 0.9
 
         # auto popleft() if too many items
-        self.memory: deque = deque(maxlen=MAX_MEMORY)
+        self.memory = deque(maxlen=MAX_MEMORY)
         self.model = LinearQNet(11, 256, 3)
+        if argv[1] == "--load" and argv[2]:
+            self.model.load_state_dict(torch.load(argv[2]))
         self.trainer = QTrainer(self.model, LEARNING_RATE, self.gamma)
 
     def get_state(self, game: SnakeGameAI):
@@ -76,18 +81,16 @@ class Agent:
             sample = self.memory
 
         state, action, reward, next_state, game_over = zip(*sample)
-        self.trainer.train_step(state, action, reward, next_state, game_over)  #
-        # for state, action, reward, next_state, game_over in sample:
-        #     self.trainer.train_step(state, action, reward, next_state, game_over)
+        self.trainer.train_step(state, action, reward, next_state, game_over)
 
     def train_short_memory(self, state, action, reward, next_state, game_over):
         self.trainer.train_step(state, action, reward, next_state, game_over)
 
-    def get_action(self, state):
-        self.epsilon = 80 - self.games
+    def get_action(self, state) -> Action:
+        self.epsilon = 200 - self.games
         final_move = [0, 0, 0]
 
-        if random.randint(0, 200) < self.epsilon:
+        if random.randint(0, 400) < self.epsilon:
             move = random.randint(0, 2)
             final_move[move] = 1
 
@@ -97,7 +100,7 @@ class Agent:
             move = torch.argmax(prediction).item()
             final_move[move] = 1
 
-        return final_move
+        return tuple(final_move)
 
 
 def train():
@@ -105,7 +108,7 @@ def train():
     plot_mean_scores = []
     total_score = 0
     record = 0
-    agent = Agent()
+    agent = Agent(sys.argv)
     game = SnakeGameAI()
     while True:
         # get old state
