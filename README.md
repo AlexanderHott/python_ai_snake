@@ -9,8 +9,8 @@ Install
 ```bash
 python -m venv .venv
 
-.venv\Scripts\activate  # mac / linux
-source .venv/bin/activate  # windows
+.venv\Scripts\activate  # windows
+source .venv/bin/activate  # mac / linux
 
 pip install -r requirements.txt
 ```
